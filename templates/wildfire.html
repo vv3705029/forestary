@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Wildfire Detection{% endblock %}
+
+{% block style %}
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { text-align: center; margin-bottom: 20px; }
+    
+    #wildfire-form {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    #wildfire-form input, #wildfire-form button {
+        padding: 10px;
+        margin: 8px 0;
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+
+    #wildfire-form button {
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    #wildfire-form button:hover {
+        background-color: #219150;
+    }
+
+    .result {
+        max-width: 500px;
+        margin: 20px auto;
+        padding: 15px;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+    .high-risk { color: red; border: 1px solid red; }
+    .moderate-risk { color: orange; border: 1px solid orange; }
+    .low-risk { color: green; border: 1px solid green; }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+        body { margin: 10px; }
+        #wildfire-form { padding: 15px; }
+        .result { font-size: 16px; padding: 12px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Wildfire Prediction Form</h2>
+<form id="wildfire-form">
+    <input type="text" name="latitude" placeholder="Latitude" required>
+    <input type="text" name="longitude" placeholder="Longitude" required>
+    <input type="text" name="acq_date" placeholder="ACQ Date (YYYY-MM-DD)" required>
+    <input type="text" name="avgtemp_c" placeholder="Avg Temp (°C)" required>
+    <input type="text" name="total_precip_mm" placeholder="Total Precipitation (mm)" required>
+    <input type="text" name="avg_humidity" placeholder="Avg Humidity (%)" required>
+    <input type="text" name="pressure_in" placeholder="Pressure (in)" required>
+    <input type="text" name="wind_kph" placeholder="Wind (kph)" required>
+    <button type="submit">Predict</button>
+</form>
+
+<div id="result" class="result"></div>
+
+<script>
+const form = document.getElementById('wildfire-form');
+const resultDiv = document.getElementById('result');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => {
+        if(key !== 'acq_date'){
+            data[key] = parseFloat(value);
+        } else {
+            data[key] = value;
+        }
+    });
+
+    try {
+        const response = await fetch("{{ url_for('predict') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const resData = await response.json();
+        if (response.ok) {
+            let riskClass = "low-risk";
+            if(resData.probability >= 75) riskClass = "high-risk";
+            else if(resData.probability >= 40) riskClass = "moderate-risk";
+
+            resultDiv.className = "result " + riskClass;
+            resultDiv.innerHTML = `
+                Latitude: ${resData.latitude}<br>
+                Longitude: ${resData.longitude}<br>
+                Probability: ${resData.probability}%<br>
+                Info: ${resData.wildfire_info}
+            `;
+        } else {
+            resultDiv.className = "result high-risk";
+            resultDiv.innerHTML = "Error: " + resData.error;
+        }
+    } catch (err) {
+        resultDiv.className = "result high-risk";
+        resultDiv.innerHTML = "Error: " + err.message;
+    }
+});
+</script>
+{% endblock %}

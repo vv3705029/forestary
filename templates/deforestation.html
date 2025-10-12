@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Deforestation Detection{% endblock %}
+
+{% block content %}
+<h2 style="text-align:center;margin-top:30px;">Upload an Image for Deforestation Analysis</h2>
+
+<form action="{{ url_for('predict_deforestation_route') }}" method="post" enctype="multipart/form-data" 
+      style="text-align:center;margin-top:30px;">
+    <input type="file" name="image" accept="image/*" required style="margin:10px;">
+    <button type="submit" style="padding:10px 20px;background-color:#27ae60;color:white;border:none;border-radius:5px;">Analyze</button>
+</form>
+{% endblock %}
